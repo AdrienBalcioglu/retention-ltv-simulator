@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Retention &amp; LTV Simulator</title>
+<style>:root{--bg:#f7f7f5;--panel:#fff;--ink:#1c1c1a;--muted:#6b6b66;--line:#e3e3de;--accent:#3d5afe;--accent-ink:#fff;--good:#1a7f4b;--bad:#b3261e;--warn:#9a6700;--soft:#eef0ff;--radius:10px;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--panel:#1d1d1b;--ink:#ececE6;--muted:#9a9a93;--line:#30302c;--accent:#8c9eff;--accent-ink:#11122b;--good:#5fd39a;--bad:#ff8a80;--warn:#e3b341;--soft:#23264a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1080px;margin:0 auto;padding:28px 16px 64px}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:24px;margin:0;letter-spacing:-.01em}
+h2{font-size:15px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+p.lead{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.grid{display:grid;gap:16px}
+@media(min-width:820px){.cols-2{grid-template-columns:1fr 1fr}.cols-3{grid-template-columns:repeat(3,1fr)}.side{grid-template-columns:340px 1fr}}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+textarea{min-height:120px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.field{margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-weight:600;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.ghost{border-color:transparent;color:var(--muted);padding:4px 8px}
+button:disabled{opacity:.5;cursor:not-allowed}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td input{padding:5px 7px}
+.scroll{overflow-x:auto}
+.stat{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0}
+.muted{color:var(--muted)}.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--accent)}
+.out{white-space:pre-wrap;word-wrap:break-word;font-size:14.5px;min-height:120px}
+.out.mono,code{font-family:var(--mono);font-size:13px}
+.note{font-size:13px;color:var(--muted)}
+footer{margin-top:28px;font-size:13px;color:var(--muted)}
+footer a{color:inherit}
+
+svg{width:100%;height:auto;display:block}
+.axis{stroke:var(--line)}.lbl{fill:var(--muted);font-size:11px}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--muted);margin-top:6px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div>
+      <h1>Retention &amp; LTV Simulator</h1>
+      <p class="lead">Model one cohort of subscribers: how many stay, what they are worth, and when they pay back their acquisition cost.</p>
+    </div>
+  </header>
+
+  <div class="grid side">
+    <section class="panel">
+      <h2>Assumptions</h2>
+      <div class="field"><label for="arpu">Revenue per customer per month</label><input id="arpu" type="number" min="0" step="1" value="40"></div>
+      <div class="field"><label for="margin">Gross margin (%)</label><input id="margin" type="number" min="0" max="100" value="80"></div>
+      <div class="field"><label for="cac">Acquisition cost per customer (CAC)</label><input id="cac" type="number" min="0" step="10" value="300"></div>
+      <div class="field"><label for="m1">Customers still active after month 1 (%)</label><input id="m1" type="number" min="0" max="100" value="80"></div>
+      <div class="field"><label for="ret">Monthly retention after month 1 (%)</label><input id="ret" type="number" min="0" max="100" step="0.5" value="96"></div>
+      <div class="field"><label for="horizon">Horizon (months)</label><input id="horizon" type="number" min="6" max="120" value="36"></div>
+      <p class="note">Many products lose a larger share of customers in the first month than later. That is why month 1 has its own setting.</p>
+    </section>
+
+    <div>
+      <section class="panel">
+        <div class="grid cols-3">
+          <div class="stat" id="ltv">–<small>lifetime value (margin)</small></div>
+          <div class="stat" id="ratio">–<small>LTV to CAC</small></div>
+          <div class="stat" id="payback">–<small>payback</small></div>
+        </div>
+        <p id="verdict" class="note" style="margin-bottom:0"></p>
+      </section>
+      <section class="panel">
+        <h2>Cumulative margin per customer vs CAC</h2>
+        <svg id="chart" viewBox="0 0 640 260" role="img" aria-label="Cumulative margin and retention over time"></svg>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--accent)"></span>Cumulative margin</span>
+          <span><span class="dot" style="background:var(--bad)"></span>CAC</span>
+          <span><span class="dot" style="background:var(--good)"></span>Customers still active (%)</span>
+        </div>
+      </section>
+      <section class="panel scroll">
+        <h2>Month by month</h2>
+        <table><thead><tr><th>Month</th><th class="num">Active</th><th class="num">Margin this month</th><th class="num">Cumulative</th><th class="num">Net of CAC</th></tr></thead><tbody id="rows"></tbody></table>
+      </section>
+    </div>
+  </div>
+  <footer>MIT license · © 2026 Adrien Balcioglu · Runs entirely in your browser.</footer>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const val = (id) => { const n = parseFloat($(id).value); return Number.isFinite(n) ? n : 0; };
+const money = (n) => (n < 0 ? '-' : '') + Math.abs(Math.round(n)).toLocaleString('en-US');
+
+function model() {
+  const arpu = val('arpu'), margin = val('margin') / 100, cac = val('cac');
+  const m1 = Math.min(1, val('m1') / 100), ret = Math.min(1, val('ret') / 100);
+  const horizon = Math.max(6, Math.min(120, Math.round(val('horizon'))));
+  const rows = []; let cumulative = 0, payback = null;
+  for (let month = 1; month <= horizon; month++) {
+    // Share of the cohort still paying at the start of this month.
+    const active = month === 1 ? 1 : m1 * Math.pow(ret, month - 2);
+    const earned = arpu * margin * active;
+    cumulative += earned;
+    if (payback === null && cumulative >= cac) payback = month;
+    rows.push({ month, active, earned, cumulative });
+  }
+  return { rows, cac, ltv: cumulative, payback, horizon };
+}
+
+function draw({ rows, cac, horizon }) {
+  const W = 640, H = 260, L = 46, R = 40, T = 12, B = 28;
+  const maxY = Math.max(cac, rows[rows.length - 1].cumulative, 1) * 1.08;
+  const x = (m) => L + ((m - 1) / (horizon - 1)) * (W - L - R);
+  const y = (v) => T + (1 - v / maxY) * (H - T - B);
+  const yPct = (v) => T + (1 - v) * (H - T - B);
+  const line = (pts) => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => `<line class="axis" x1="${L}" x2="${W - R}" y1="${y(maxY * t)}" y2="${y(maxY * t)}"/><text class="lbl" x="${L - 6}" y="${y(maxY * t) + 4}" text-anchor="end">${money(maxY * t)}</text><text class="lbl" x="${W - R + 6}" y="${yPct(t / 1.08) + 4}">${Math.round(t / 1.08 * 100)}%</text>`).join('');
+  const step = Math.max(1, Math.round(horizon / 6));
+  const xl = rows.filter((r) => r.month === 1 || r.month % step === 0).map((r) => `<text class="lbl" x="${x(r.month)}" y="${H - 8}" text-anchor="middle">M${r.month}</text>`).join('');
+  $('chart').innerHTML = ticks + xl +
+    `<path d="${line(rows.map((r) => [x(r.month), yPct(r.active / 1.08)]))}" fill="none" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="4 3"/>` +
+    `<line x1="${L}" x2="${W - R}" y1="${y(cac)}" y2="${y(cac)}" stroke="var(--bad)" stroke-width="1.5"/>` +
+    `<path d="${line(rows.map((r) => [x(r.month), y(r.cumulative)]))}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+}
+
+function render() {
+  const m = model();
+  const ratio = m.cac > 0 ? m.ltv / m.cac : Infinity;
+  $('ltv').firstChild.textContent = money(m.ltv);
+  $('ratio').firstChild.textContent = Number.isFinite(ratio) ? ratio.toFixed(1) + ' : 1' : '∞';
+  $('payback').firstChild.textContent = m.payback ? m.payback + ' mo' : 'never';
+  const v = $('verdict');
+  if (!m.payback) { v.className = 'note bad'; v.textContent = `Over ${m.horizon} months, a customer never pays back the acquisition cost. Raise retention or price, or lower CAC.`; }
+  else if (ratio >= 3 && m.payback <= 12) { v.className = 'note good'; v.textContent = 'Healthy: LTV is at least 3 times CAC and payback is within a year.'; }
+  else { v.className = 'note warn'; v.textContent = `Workable but tight. A common target is an LTV to CAC ratio of 3 or more and payback within 12 months. You are at ${ratio.toFixed(1)} and ${m.payback} months.`; }
+  $('rows').innerHTML = m.rows.map((r) => `<tr><td>M${r.month}</td><td class="num">${(r.active * 100).toFixed(1)}%</td><td class="num">${money(r.earned)}</td><td class="num">${money(r.cumulative)}</td><td class="num ${r.cumulative - m.cac >= 0 ? 'good' : 'bad'}">${money(r.cumulative - m.cac)}</td></tr>`).join('');
+  draw(m);
+}
+document.querySelectorAll('input').forEach((el) => el.addEventListener('input', render));
+render();
+</script>
+</body>
+</html>
