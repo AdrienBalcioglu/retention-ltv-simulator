@@ -2,7 +2,7 @@
 
 Model a subscriber cohort: retention, lifetime value, LTV to CAC and payback.
 
-**[Website](https://adrienbalcioglu.github.io/retention-ltv-simulator/about.html)** · **[Open the app](https://adrienbalcioglu.github.io/retention-ltv-simulator/)**
+**[Website](https://eidoslab.fr/retention-ltv-simulator)** · **[Open the app](https://adrienbalcioglu.github.io/retention-ltv-simulator/)**
 
 ## Features
 
